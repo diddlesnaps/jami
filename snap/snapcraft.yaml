@@ -1,191 +1,361 @@
 name: gnome-ring
-version: '0.1' # just for humans, typically '1.2+git' or '1.3.2'
-summary: A free, universal, communication platform which preserves privacy and freedoms
+version: git
+adopt-info: ring
+summary: Ring is a secure, distributed communication software and a SIP client
 icon: icons/ring.png
 description: |
-  Ring is free software which allows its users to communicate in multiple ways.
-  * A telephone: a simple tool to connect, communicate and share.
-  * A teleconferencing tool: easily join calls to create conferences with multiple participants.
-  * A media sharing tool: Ring supports a variety of video input options, including mutliple cameras and image and video files, and the selection of audio inputs and outputs; all this is supported by multiple high quality audio and video codecs.
-  * A messenger: send text messeges during calls or out of calls (as long as your peer is connected).
-  * A building block for your IoT project: re-use the universal communications technology of Ring with its portable library on your system of choice.
+  Ring is a secure, distributed communication software and a SIP client.
 
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: strict
+grade: stable
+base: core18
 
-# slots:
-#   dbus-dring:
+plugs:
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes:gtk-3-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes:icon-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes:sounds-themes
+
+slots:
+  dbus-ringgnome:
+    interface: dbus
+    bus: session
+    name: cx.ring.RingGnome
+  dbus-dring:
+    interface: dbus
+    bus: session
+    name: cx.ring.Ring
+#   dbus-config:
 #     interface: dbus
 #     bus: session
-#     name: cx.ring.Ring
+#     name: cx.ring.Ring.ConfigurationManager
+#   dbus-instance:
+#     interface: dbus
+#     bus: session
+#     name: cx.ring.Ring.Instance
+
+environment:
+  ALSA_CONFIG_PATH: $SNAP/etc/alsa.conf
 
 apps:
   gnome-ring:
-    command: desktop-launch snapcraft-preload $SNAP/usr/bin/gnome-ring
+    command: desktop-launch $SNAP/usr/bin/gnome-ring
+    desktop: usr/share/applications/gnome-ring.desktop
+    slots:
+    - dbus-ringgnome
+    # - dbus-ring
+    # - dbus-config
+    # - dbus-instance
     plugs:
-      - browser-support
-      - camera
-      - gsettings
-      - home
-      - network
-      - opengl
-      - pulseaudio
-      - unity7
-      - x11
+    - browser-support
+    - camera
+    - desktop
+    - desktop-legacy
+    - gsettings
+    - home
+    - network
+    - network-bind
+    - opengl
+    - pulseaudio
+    - x11
+    - wayland
 
   dring:
     command: desktop-launch $SNAP/usr/lib/ring/dring
-    slots: [dbus-dring]
-    plugs: [network]
+    slots:
+    - dbus-dring
+    # [dbus-ringgnome, dbus-ring, dbus-config, dbus-instance]
+    plugs:
+    - browser-support
+    - camera
+    - desktop
+    - desktop-legacy
+    - gsettings
+    - home
+    - network
+    - network-bind
+    - opengl
+    - pulseaudio
+    - x11
+    - wayland
 
 parts:
-  libring:
-    source: https://github.com/savoirfairelinux/ring-daemon.git
-    source-type: git
-    source-depth: 1
+  patches:
+    source: patches
+    plugin: dump
+    prime: [-*]
+
+  desktop-gtk3:
+    after: [patches]
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: gtk
+    plugin: make
+    make-parameters: ["FLAVOR=gtk3"]
+    build-packages:
+    - libgtk-3-dev
+    stage-packages:
+    - libxkbcommon0  # XKB_CONFIG_ROOT
+    - ttf-ubuntu-font-family
+    - dmz-cursor-theme
+    - light-themes
+    - adwaita-icon-theme
+    - gnome-themes-standard
+    - shared-mime-info
+    - libgtk-3-0
+    - libgdk-pixbuf2.0-0
+    - libglib2.0-bin
+    - libgtk-3-bin
+    - unity-gtk3-module
+    - libappindicator3-1
+    - locales-all
+    - xdg-user-dirs
+    - ibus-gtk3
+    - libibus-1.0-5
+    override-pull: |
+      snapcraftctl pull
+      patch -Np1 < $SNAPCRAFT_STAGE/desktop-launch.patch
+
+  alsa-lib:
     plugin: autotools
+    source: https://mirrorservice.org/sites/ftp.alsa-project.org/pub/lib/alsa-lib-1.1.6.tar.bz2
     configflags:
-      - --prefix=/usr
-    prepare: |
-      sed -i 's/AC_DEFINE_UNQUOTED(\[HAVE_SHM\], .*/AC_DEFINE_UNQUOTED([HAVE_SHM], 0,/' configure.ac
-      mkdir contrib/native
-      cd contrib/native
+    - --prefix=/usr
+    - --sysconfdir=/etc
+    - --libexec=/usr/lib
+    - --libdir=/usr/lib
+    - --localstatedir=/var
+    - --with-configdir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/alsa
+    - --with-plugindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/alsa-lib
+    - --disable-alisp
+    - --disable-aload
+    - --disable-python
+    - --disable-rawmidi
+    - --disable-static
+    - --disable-topology
+    - --disable-ucm
+    - --enable-symbolic-functions
+    override-build: |
+      snapcraftctl build
+      for pcfile in $SNAPCRAFT_PART_INSTALL/usr/lib/pkgconfig/*.pc; do
+        sed -i -E "s~^((include|lib)dir=)/usr(/local)?~\1\${prefix}~g" $pcfile || true
+        sed -i -E "s~^((exec_)?prefix=)(/usr(/local)?)~\1/\3~" $pcfile || true
+      done
+    organize:
+      snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/*: usr/lib/
+      snap/$SNAPCRAFT_PROJECT_NAME/current/usr/share/*: usr/share/
+    stage:
+    - usr/include
+    - usr/lib
+    - usr/share/alsa
+    prime:
+    - usr/lib/*.so
+    - usr/lib/*.so.*
+    - usr/share/alsa
+
+  alsa-plugins:
+    after: [alsa-lib]
+    plugin: autotools
+    source: https://mirrorservice.org/sites/ftp.alsa-project.org/pub/plugins/alsa-plugins-1.1.6.tar.bz2
+    configflags:
+    - --prefix=/usr
+    - --sysconfdir=/etc
+    - --libexec=/usr/lib
+    - --libdir=/usr/lib
+    - --localstatedir=/var
+    - --disable-arcamav
+    - --disable-avcodec
+    - --disable-jack
+    - --disable-mix
+    - --disable-oss
+    - --disable-usbstream
+    - --with-plugindir=/snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/alsa-lib
+    - --disable-static
+    - LDFLAGS=-L$SNAPCRAFT_STAGE/usr/lib
+    organize:
+      snap/$SNAPCRAFT_PROJECT_NAME/current/usr/lib/*: usr/lib/
+    stage:
+    - lib
+    - usr/lib
+    - usr/share/alsa
+    prime:
+    - lib
+    - usr/lib
+    - usr/share/alsa
+    build-packages:
+    - libpulse-dev
+    stage-packages:
+    - libpulse0
+
+  alsa:
+    after: [alsa-plugins, alsa-lib]
+    plugin: nil
+    source: https://github.com/diddledan/snapcraft-alsa.git
+    override-pull: |
+      cat > alsa.conf <<EOF
+      pcm.!default {
+        type pulse
+        fallback "sysdefault"
+        hint {
+          show on
+          description "Default ALSA Output (currently PulseAudio Sound Server)"
+        }
+      }
+      ctl.!default {
+        type pulse
+        fallback "sysdefault"
+      }
+      EOF
+    override-build: |
+      snapcraftctl build
+      install -m644 -D -t $SNAPCRAFT_PART_INSTALL/etc alsa.conf
+
+  ring:
+    after: [alsa, desktop-gtk3, patches]
+    source: https://git.ring.cx/savoirfairelinux/ring-project.git
+    source-type: git
+    source-branch: production
+    plugin: nil
+    parse-info: [usr/share/appdata/gnome-ring.appdata.xml]
+    override-pull: |
+      snapcraftctl pull
+      sed -i -E 's|^Icon=.*|Icon=$SNAP/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/gnome-ring.desktop
+      # bash -c "cd lrc && patch -Np1 -i $SNAPCRAFT_STAGE/lrc.diff"
+    override-build: |
+      TOP=$PWD
+      INSTALL=$TOP/install
+      cd $TOP/daemon
+      DAEMON=$PWD
+      cd contrib
+      mkdir -p native
+      cd native
       ../bootstrap
       make
-    build-packages:
-      - gettext
-      - libasound2-dev
-      - libavcodec-dev
-      - libavdevice-dev
-      - libavformat-dev
-      - libboost-dev
-      - libdbus-c++-dev
-      - libgnutls-dev
-      - libgsm1-dev
-      - libjack-dev
-      - libjsoncpp-dev
-      - libopus-dev
-      - libpcre3-dev
-      - libpulse-dev
-      - libsamplerate0-dev
-      - libsndfile1-dev
-      - libspeex-dev
-      - libspeexdsp-dev
-      - libsrtp0-dev
-      - libswscale-dev
-      - libudev-dev
-      - libupnp-dev
-      - libva-dev
-      - libvdpau-dev
-      - libyaml-cpp-dev
-      - uuid-dev
-      - yasm
-    stage-packages:
-      - libasound2
-      - libavcodec-ffmpeg-extra56
-      - libavdevice-ffmpeg56
-      - libavformat-ffmpeg56
-      - libdbus-c++-1-0v5
-      - libgnutls30
-      - libgnutlsxx28
-      - libgsm1
-      - libjack0
-      - libjsoncpp1
-      - libopus0
-      - libpcre3
-      - libpcrecpp0v5
-      - libpulse0
-      - libsamplerate0
-      - libsndfile1
-      - libspeex1
-      - libspeexdsp1
-      - libsrtp0
-      - libswscale-ffmpeg3
-      - libudev1
-      - libupnp6
-      - libuuid1
-      - libva-egl1
-      - libva-glx1
-      - libva-wayland1
-      - libva-x11-1
-      - libva1
-      - libvdpau1
-      - libyaml-cpp0.5v5
+      cd $DAEMON
+      ./autogen.sh
 
-  libringclient:
-    after: [libring]
-    source: https://github.com/savoirfairelinux/ring-lrc.git
-    source-type: git
-    source-depth: 1
-    plugin: cmake
-    configflags:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DRING_INCLUDE_DIR=$SNAPCRAFT_STAGE/usr/include/dring
-      - -DENABLE_LIBWRAP=true
-    install: |
-      sed -i 's|/usr/|${PACKAGE_PREFIX_DIR}/|' \
-        "$SNAPCRAFT_PART_INSTALL/usr/lib/cmake/LibRingClient/LibRingClientConfig.cmake"
-    build-packages:
-      - qtbase5-dev
-      - qttools5-dev
-      - qttools5-dev-tools
-    stage-packages:
-      - libegl1-mesa
-      - libgl1-mesa-glx
-      - libqt5concurrent5
-      - libqt5core5a
-      - libqt5dbus5
-      - libqt5gui5
-      - libqt5network5
-      - libqt5printsupport5
-      - libqt5sql5
-      - libqt5test5
-      - libqt5widgets5
-      - libqt5xml5
-      - libwayland-client0
-      - sqlite3
+      ./configure --prefix=$SNAPCRAFT_PART_INSTALL/usr # --without-dbus
+      make -j$SNAPCRAFT_PARALLEL_BUILD_COUNT
+      make install
 
-  ring-client-gnome:
-    after: [desktop-gtk3, libringclient, snapcraft-preload]
-    source: https://github.com/savoirfairelinux/ring-client-gnome.git
-    source-type: git
-    source-depth: 1
-    plugin: cmake
-    configflags:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DLibRingClient_DIR=$SNAPCRAFT_STAGE/usr/lib
-      - -DGSETTINGS_LOCALCOMPILE=OFF
+      cd $TOP/lrc
+      mkdir -p builddir
+      cd builddir
+      cmake .. -DCMAKE_INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL/usr \
+               -DRING_BUILD_DIR=$DAEMON/src # \
+              #  -DENABLE_LIBWRAP=true
+      make -j$SNAPCRAFT_PARALLEL_BUILD_COUNT
+      make install
+
+      cd $TOP/client-gnome
+      mkdir -p builddir
+      cd builddir
+      cmake .. -DCMAKE_INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL/usr \
+               -DLibRingClient_DIR=$SNAPCRAFT_PART_INSTALL/usr/lib/cmake/LibRingClient
+      make -j$SNAPCRAFT_PARALLEL_BUILD_COUNT
+      make install
+    stage:
+    - -usr/include
+    - -usr/lib/*/libasound*
+    - -usr/lib/cmake
+    - -usr/share/alsa
     build-packages:
-      - gettext
-      - libappindicator3-dev
-      - libclutter-gtk-1.0-dev
-      - libebook1.2-dev
-      - libgtk-3-dev
-      - libnm-glib-dev
-      - libnotify-dev
-      - libqrencode-dev
-      - libwebkit2gtk-4.0-dev
-      - qtbase5-dev
+    - autoconf-archive
+    - autoconf
+    - automake
+    - autopoint
+    - cmake
+    - dbus
+    - doxygen
+    - g++
+    - gettext
+    - gnome-icon-theme-symbolic
+    - libappindicator3-dev
+    - libavcodec-dev
+    - libavdevice-dev
+    - libavformat-dev
+    - libboost-dev
+    - libcanberra-gtk3-dev
+    - libclutter-gtk-1.0-dev
+    - libcppunit-dev
+    - libdbus-1-dev
+    - libdbus-c++-dev
+    - libebook1.2-dev
+    - libexpat1-dev
+    - libgnutls28-dev
+    - libgtk-3-dev
+    - libjack-dev
+    - libjsoncpp-dev
+    - libmsgpack-dev
+    - libnm-dev
+    - libnotify-dev
+    - libopus-dev
+    - libpcre3-dev
+    - libpulse-dev
+    - libqrencode-dev
+    - libqt5sql5-sqlite
+    - libspeex-dev
+    - libspeexdsp-dev
+    - libssl-dev
+    - libswscale-dev
+    - libtool
+    - libudev-dev
+    - libupnp-dev
+    - libva-dev
+    - libvdpau-dev
+    - libwebkit2gtk-4.0-dev
+    - libyaml-cpp-dev
+    - qtbase5-dev
+    - sip-tester
+    - swig
+    - uuid-dev
+    - yasm
     stage-packages:
-      - gnome-icon-theme-symbolic
-      - libappindicator3-1
-      - libclutter-gtk-1.0-0
-      - libebook-1.2-16
-      - libegl1-mesa
-      - libgl1-mesa-glx
-      - libgtk-3-0
-      - libnm-glib4
-      - libnotify4
-      - libqrencode3
-      - libqt5concurrent5
-      - libqt5core5a
-      - libqt5dbus5
-      - libqt5gui5
-      - libqt5network5
-      - libqt5printsupport5
-      - libqt5sql5
-      - libqt5test5
-      - libqt5widgets5
-      - libqt5xml5
-      - libwayland-client0
-      - libwebkit2gtk-4.0-37
-      - sqlite3
+    - gstreamer1.0-plugins-base
+    - libappindicator3-1
+    - libavc1394-0
+    - libavcodec57
+    - libavdevice57
+    - libavfilter6
+    - libavformat57
+    - libavresample3
+    - libavutil55
+    - libcanberra-gtk3-0
+    - libclutter-gtk-1.0-0
+    - libdbus-1-3
+    - libebook-1.2-19
+    - libexpat1
+    - libglu1-mesa
+    - libgnutls30
+    - libjsoncpp1
+    - libmsgpackc2
+    - libnm0
+    - libpulse0
+    - libqrencode3
+    - libqt5core5a
+    - libqt5dbus5
+    - libqt5sql5
+    - libsdl2-2.0-0
+    - libslang2
+    - libspeex1
+    - libspeexdsp1
+    - libsqlite3-0
+    - libssl1.1
+    - libswscale4
+    - libudev1
+    - libupnp6
+    - libva-drm2
+    - libva-glx2
+    - libva-wayland2
+    - libva-x11-2
+    - libva2
+    - libvdpau1
+    - libwebkit2gtk-4.0-37
+    - libyaml-cpp0.5v5
