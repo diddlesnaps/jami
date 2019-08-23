@@ -217,7 +217,10 @@ parts:
     - autoconf-archive
     - automake
     - autopoint
+    - bzip2
     - cmake
+    - curl
+    - gzip
     - libasound2-dev
     - libavcodec-dev
     - libavdevice-dev
