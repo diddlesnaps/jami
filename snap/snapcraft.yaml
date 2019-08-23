@@ -2,7 +2,7 @@ name: jami
 version: git
 adopt-info: jami
 icon: icons/ring.png
-summary: Jami, formally Ring: secure, distributed communication software & SIP client
+summary: 'Jami, formally Ring: secure, distributed communication software & SIP client'
 description: >
   Jami is free software which allows its users to communicate in multiple ways.
 
