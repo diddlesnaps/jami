@@ -1,0 +1,12 @@
+diff --git a/common/desktop-exports b/common/desktop-exports
+index ffa4f7b..e97a217 100644
+--- a/common/desktop-exports
++++ b/common/desktop-exports
+@@ -88,6 +88,7 @@ append_dir LD_LIBRARY_PATH $RUNTIME/usr/lib/$ARCH/libunity
+ 
+ # Pulseaudio export
+ append_dir LD_LIBRARY_PATH $RUNTIME/usr/lib/$ARCH/pulseaudio
++append_dir LD_LIBRARY_PATH $SNAP/usr/lib/alsa-lib
+ 
+ # EGL vendor files on glvnd enabled systems
+ [ -d /var/lib/snapd/lib/glvnd/egl_vendor.d ] && \
