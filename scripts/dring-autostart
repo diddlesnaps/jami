@@ -1,0 +1,27 @@
+#!/bin/sh
+
+dump_autostart() {
+    dfpath="$SNAP_USER_DATA/.config/autostart/jami-dring.desktop"
+
+    test -e "$dfpath" && return
+
+    echo "generating autostart file $dfpath"
+
+    mkdir -p $SNAP_USER_DATA/.config/autostart
+    cat <<EOF > $dfpath
+[Desktop Entry]
+Name=jami dring autostart
+Exec=jami.dring --autostart
+EOF
+}
+
+case "$1" in
+    --autostart)
+        echo "autostarting with args '$@'" | tee $SNAP_USER_DATA/dring-autostarted
+        exec $SNAP/usr/lib/ring/dring -cdp | tee -a $SNAP_USER_DATA/dring-autostarted
+        ;;
+    *)
+        echo "regular run with args '$@'"
+        dump_autostart
+        ;;
+esac

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+check_autostart() {
+    dfpath="$SNAP_USER_DATA/.config/autostart/jami-dring.desktop"
+
+    test -e "$dfpath" && return
+
+    $SNAP/bin/dring-autostart
+
+    $SNAP/usr/lib/ring/dring -cdp &
+}
+
+check_autostart
+
+exec "$@"
