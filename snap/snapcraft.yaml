@@ -33,10 +33,6 @@ plugs:
     interface: content
     target: $SNAP/data-dir/sounds
     default-provider: gtk-common-themes:sounds-themes
-  dbus-ring-plug:
-    interface: dbus
-    bus: session
-    name: cx.ring.Ring
 
 slots:
   dbus-ring-slot:
@@ -66,10 +62,9 @@ apps:
     common-id: gnome-ring.desktop
     desktop: usr/share/applications/gnome-ring.desktop
     slots:
-    - dbus-ring-slot
-    - dbus-ringgnome-slot
+    - dbus-ring
+    - dbus-ringgnome
     plugs:
-    - dbus-ring-plug
     - browser-support
     - camera
     - desktop
@@ -89,9 +84,8 @@ apps:
     - bin/desktop-launch
     autostart: jami-dring.desktop
     slots:
-    - dbus-ring-slot
+    - dbus-ring
     plugs:
-    - dbus-ring-plug
     - browser-support
     - camera
     - desktop
