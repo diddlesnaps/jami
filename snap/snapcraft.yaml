@@ -1,8 +1,8 @@
 name: jami
 version: git
 adopt-info: jami
-icon: icons/ring.png
-summary: 'Jami, formally Ring: secure, distributed communication software & SIP client'
+icon: icons/jami.png
+summary: 'Jami: secure, distributed communication software & SIP client'
 description: >
   Jami is free software which allows its users to communicate in multiple ways.
 
@@ -42,7 +42,7 @@ slots:
   dbus-ringgnome-slot:
     interface: dbus
     bus: session
-    name: cx.ring.RingGnome
+    name: net.jami.Jami
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
@@ -55,15 +55,15 @@ environment:
 
 apps:
   jami:
-    command: usr/bin/gnome-ring
+    command: usr/bin/jami-gnome
     command-chain:
     - bin/desktop-launch
-    - bin/gnome-ring-wrapper
-    common-id: gnome-ring.desktop
-    desktop: usr/share/applications/gnome-ring.desktop
+    - bin/jami-gnome-wrapper
+    common-id: jami-gnome.desktop
+    desktop: usr/share/applications/jami-gnome.desktop
     slots:
-    - dbus-ring
-    - dbus-ringgnome
+    - dbus-jami
+    - dbus-jamignome
     plugs:
     - browser-support
     - camera
@@ -84,7 +84,7 @@ apps:
     - bin/desktop-launch
     autostart: jami-dring.desktop
     slots:
-    - dbus-ring
+    - dbus-jami
     plugs:
     - browser-support
     - camera
@@ -113,7 +113,7 @@ parts:
     - try: [appmenu-qt5] # not available on core18
     override-pull: |
       snapcraftctl pull
-      sed -i -E 's|\. \$SNAP/flavor-select|USE_gtk3=true|' gtk/launcher-specific 
+      sed -i -E 's|\. \$SNAP/flavor-select|USE_gtk3=true|' gtk/launcher-specific
       sed -i -E 's|\. \$SNAP/flavor-select|USE_qt5=true|' qt/launcher-specific
       sed -i -E 's|(append_dir GTK_PATH \$RUNTIME/usr/lib/\$ARCH/gtk-2.0)|#\1|' qt/launcher-specific
       sed -i -E 's|\$RUNTIME|$SNAP|g' qt/launcher-specific
@@ -121,18 +121,18 @@ parts:
     override-build: |
       snapcraftctl build
       gcc -Wall -O2 -o bindtextdomain.so -fPIC -shared src/bindtextdomain.c -ldl
-      
+
       echo "#!/bin/bash" > desktop-launch
       cat common/init >> desktop-launch
 
       cat gtk/runtime-exports >> desktop-launch
       cat qt/runtime-exports >> desktop-launch
-      
+
       cat common/desktop-exports >> desktop-launch
-      
+
       cat gtk/launcher-specific >> desktop-launch
       cat qt/launcher-specific >> desktop-launch
-      
+
       cat common/mark-and-exec >> desktop-launch
 
       install -D -m755 desktop-launch $SNAPCRAFT_PART_INSTALL/bin/desktop-launch
@@ -145,7 +145,7 @@ parts:
     source: scripts
     organize:
       dring-autostart: bin/dring-autostart
-      gnome-ring-wrapper: bin/gnome-ring-wrapper
+      jami-gnome-wrapper: bin/jami-gnome-wrapper
 
   alsa:
     plugin: nil
@@ -178,7 +178,7 @@ parts:
     after: [alsa, desktop-launch]
     source: https://review.jami.net/ring-project
     source-type: git
-    source-branch: production
+    source-branch: master
     plugin: nil
     override-pull: |
       snapcraftctl pull
@@ -200,8 +200,7 @@ parts:
       mkdir build
       cd build
       cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
-               -DRING_BUILD_DIR=$SNAPCRAFT_PART_BUILD/daemon/src # \
-               # -DENABLE_LIBWRAP=true
+               -DRING_BUILD_DIR=$SNAPCRAFT_PART_BUILD/daemon/src
       make
       DESTDIR=$SNAPCRAFT_PART_INSTALL make install
 
@@ -287,12 +286,12 @@ parts:
     source-branch: production
     source-subdir: client-gnome
     plugin: cmake
-    parse-info: [usr/share/appdata/gnome-ring.appdata.xml]
+    parse-info: [usr/share/appdata/jami-gnome.appdata.xml]
     configflags:
       - -DCMAKE_INSTALL_PREFIX=/usr
     override-pull: |
       snapcraftctl pull
-      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/gnome-ring.desktop
+      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/jami-gnome.desktop
     build-packages:
     - cmake
     - g++
@@ -300,7 +299,6 @@ parts:
     - gnome-icon-theme-symbolic
     - libcanberra-gtk3-dev
     - libclutter-gtk-1.0-dev
-    - libebook1.2-dev
     - libgtk-3-dev
     - libnotify-dev
     - libqrencode-dev
@@ -308,5 +306,4 @@ parts:
     - qtbase5-dev
     stage-packages:
     - libqt5core5a
-    - libebook-1.2-19
     - libqrencode3

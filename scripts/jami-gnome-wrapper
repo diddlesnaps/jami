@@ -7,7 +7,7 @@ check_autostart() {
 
     $SNAP/bin/dring-autostart
 
-    $SNAP/usr/lib/ring/dring -cdp &
+    $SNAP/usr/lib/ring/dring -cd&
 }
 
 check_autostart
