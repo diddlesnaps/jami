@@ -35,14 +35,14 @@ plugs:
     default-provider: gtk-common-themes:sounds-themes
 
 slots:
-  dbus-ring-slot:
+  dbus-jami:
     interface: dbus
     bus: session
     name: cx.ring.Ring
-  dbus-ringgnome-slot:
+  dbus-jamignome:
     interface: dbus
     bus: session
-    name: net.jami.Jami
+    name: cx.ring.RingGnome
 
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
@@ -55,36 +55,15 @@ environment:
 
 apps:
   jami:
-    command: usr/bin/jami-gnome
+    command: usr/bin/gnome-ring
     command-chain:
     - bin/desktop-launch
     - bin/jami-gnome-wrapper
-    common-id: jami-gnome.desktop
-    desktop: usr/share/applications/jami-gnome.desktop
+    common-id: gnome-ring.desktop
+    desktop: usr/share/applications/gnome-ring.desktop
     slots:
     - dbus-jami
     - dbus-jamignome
-    plugs:
-    - browser-support
-    - camera
-    - desktop
-    - desktop-legacy
-    - gsettings
-    - home
-    - network
-    - network-bind
-    - opengl
-    - pulseaudio
-    - x11
-    - wayland
-
-  dring:
-    command: bin/dring-autostart
-    command-chain:
-    - bin/desktop-launch
-    autostart: jami-dring.desktop
-    slots:
-    - dbus-jami
     plugs:
     - browser-support
     - camera
@@ -144,7 +123,6 @@ parts:
     plugin: dump
     source: scripts
     organize:
-      dring-autostart: bin/dring-autostart
       jami-gnome-wrapper: bin/jami-gnome-wrapper
 
   alsa:
@@ -283,15 +261,15 @@ parts:
     after: [jami-lib, alsa, desktop-launch]
     source: https://review.jami.net/ring-project
     source-type: git
-    source-branch: production
+    source-branch: master
     source-subdir: client-gnome
     plugin: cmake
-    parse-info: [usr/share/appdata/jami-gnome.appdata.xml]
+    parse-info: [usr/share/appdata/gnome-ring.appdata.xml]
     configflags:
       - -DCMAKE_INSTALL_PREFIX=/usr
     override-pull: |
       snapcraftctl pull
-      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/jami-gnome.desktop
+      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/gnome-ring.desktop
     build-packages:
     - cmake
     - g++
@@ -299,11 +277,13 @@ parts:
     - gnome-icon-theme-symbolic
     - libcanberra-gtk3-dev
     - libclutter-gtk-1.0-dev
+    - libebook1.2-dev
     - libgtk-3-dev
     - libnotify-dev
     - libqrencode-dev
     - libwebkit2gtk-4.0-dev
     - qtbase5-dev
     stage-packages:
+    - libebook-1.2-19
     - libqt5core5a
     - libqrencode3
