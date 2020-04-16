@@ -100,8 +100,6 @@ parts:
     - qtbase5-dev
     - dpkg-dev
     stage-packages:
-    - libappindicator3-1
-    - libayatana-appindicator3-1
     - libqt5gui5
     - libqt5svg5 # for loading icon themes which are svg
     - try: [appmenu-qt5] # not available on core18
@@ -160,7 +158,9 @@ parts:
     override-pull: |
       snapcraftctl pull
       sed -i -E 's|(tmpName) << (PACKAGE_NAME << "_shm_")|\1 << "snap.jami." << \2|' daemon/src/media/video/sinkclient.cpp
-      sed -i -E 's|^Icon=.*|Icon=${SNAP}/usr/share/icons/hicolor/scalable/apps/jami.svg|' client-gnome/jami-gnome.desktop
+      for file in jami-gnome.desktop jami-gnome.desktop.autostart; do
+        sed -i -E 's|^Icon=.*|Icon=${SNAP}/usr/share/icons/hicolor/scalable/apps/jami.svg|' client-gnome/$file
+      done
     override-build: |
       cd $SNAPCRAFT_PART_BUILD/daemon/contrib
       mkdir -p native
@@ -206,6 +206,7 @@ parts:
     - gnome-icon-theme-symbolic
     - gzip
     - libappindicator3-dev
+    - libayatana-appindicator3-dev
     - libasound2-dev
     - libavcodec-dev
     - libavdevice-dev
@@ -231,7 +232,7 @@ parts:
     - libsndfile1-dev
     - libspeex-dev
     - libspeexdsp-dev
-    - libsrtp-dev
+    - libsrtp0-dev
     - libswscale-dev
     - libtool
     - libudev-dev
@@ -247,6 +248,7 @@ parts:
     stage-packages:
     - freeglut3
     - libappindicator3-1
+    - libayatana-appindicator3-1
     - libavcodec-extra
     - libavcodec57
     - libavdevice57
