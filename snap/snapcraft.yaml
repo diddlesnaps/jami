@@ -160,7 +160,7 @@ parts:
     override-pull: |
       snapcraftctl pull
       sed -i -E 's|(tmpName) << (PACKAGE_NAME << "_shm_")|\1 << "snap.jami." << \2|' daemon/src/media/video/sinkclient.cpp
-      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/ring.svg|' client-gnome/jami-gnome.desktop
+      sed -i -E 's|^Icon=.*|Icon=/usr/share/icons/hicolor/scalable/apps/jami.svg|' client-gnome/jami-gnome.desktop
     override-build: |
       cd $SNAPCRAFT_PART_BUILD/daemon/contrib
       mkdir -p native
