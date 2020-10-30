@@ -1,5 +1,5 @@
 name: jami
-version: git
+version: "20201027.1.3883929"
 adopt-info: jami
 icon: icons/jami.png
 summary: 'Jami: secure, distributed communication software & SIP client'
@@ -96,7 +96,7 @@ parts:
     source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
     plugin: nil
     build-packages:
-    - gcc
+    - gcc-8
     - qtbase5-dev
     - dpkg-dev
     stage-packages:
@@ -150,9 +150,9 @@ parts:
 
   jami:
     after: [alsa-mixin]
-    source: https://review.jami.net/ring-project
-    source-type: git
-    source-branch: release/201912
+    source: https://dl.jami.net/release/tarballs/jami_20201027.1.3883929.tar.gz
+    source-subdir: ring-project
+    source-type: tar
     plugin: nil
     parse-info: [usr/share/metainfo/jami-gnome.appdata.xml]
     override-pull: |
@@ -162,6 +162,11 @@ parts:
         sed -i -E 's|^Icon=.*|Icon=${SNAP}/usr/share/icons/hicolor/scalable/apps/jami.svg|' client-gnome/$file
       done
     override-build: |
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 10
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 20
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 10
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 20
+
       cd $SNAPCRAFT_PART_BUILD/daemon/contrib
       mkdir -p native
       cd native
@@ -201,7 +206,7 @@ parts:
     - bzip2
     - cmake
     - curl
-    - g++
+    - g++-8
     - gettext
     - gnome-icon-theme-symbolic
     - gzip
